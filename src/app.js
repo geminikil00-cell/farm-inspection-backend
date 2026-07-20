@@ -7,6 +7,7 @@ import recordRoutes from './routes/records.js';
 import analyticsRoutes from './routes/analytics.js';
 import photoRoutes from './routes/photos.js';
 import adminRoutes from './routes/admin.js';
+import templateRoutes from './routes/templates.js';
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/records', recordRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/photos', photoRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/templates', templateRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
