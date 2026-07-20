@@ -18,10 +18,17 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
 
 -- Role constraint
-ALTER TABLE users
-  ADD CONSTRAINT users_role_check CHECK (role IN (
-    'super_admin', 'org_admin', 'auditor', 'dept_head', 'quality_mgr', 'viewer'
-  ));
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'users_role_check'
+  ) THEN
+    ALTER TABLE users
+      ADD CONSTRAINT users_role_check CHECK (role IN (
+        'super_admin', 'org_admin', 'auditor', 'dept_head', 'quality_mgr', 'viewer'
+      ));
+  END IF;
+END $$;
 
 -- 3. Add org_id to inspection_records
 ALTER TABLE inspection_records
