@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js';
 import recordRoutes from './routes/records.js';
 import analyticsRoutes from './routes/analytics.js';
 import photoRoutes from './routes/photos.js';
+import adminRoutes from './routes/admin.js';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/records', recordRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/photos', photoRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });

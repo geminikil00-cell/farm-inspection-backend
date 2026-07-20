@@ -13,9 +13,9 @@ export const getRecords = async (req, res) => {
       SELECT id, facility_id, facility_title, inspector, date, score,
              inspection_year, inspection_quarter, created_at
       FROM inspection_records
-      WHERE user_id = $1
+      WHERE org_id = $1
     `;
-    const params = [req.userId];
+    const params = [req.orgId];
     let idx = 2;
 
     if (facility_id && facility_id !== 'all') {
@@ -44,8 +44,8 @@ export const getRecords = async (req, res) => {
 export const getRecord = async (req, res) => {
   try {
     const result = await query(
-      'SELECT * FROM inspection_records WHERE id = $1 AND user_id = $2',
-      [req.params.id, req.userId]
+      'SELECT * FROM inspection_records WHERE id = $1 AND org_id = $2',
+      [req.params.id, req.orgId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Record not found' });
@@ -67,11 +67,12 @@ export const createRecord = async (req, res) => {
 
     const result = await query(
       `INSERT INTO inspection_records
-         (user_id, facility_id, facility_title, inspector, date,
+         (org_id, user_id, facility_id, facility_title, inspector, date,
           score, inspection_year, inspection_quarter, data, photo_paths)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
+        req.orgId,
         req.userId,
         facility_id,
         facility_title,
@@ -95,8 +96,8 @@ export const createRecord = async (req, res) => {
 export const deleteRecord = async (req, res) => {
   try {
     const fetchResult = await query(
-      'SELECT photo_paths FROM inspection_records WHERE id = $1 AND user_id = $2',
-      [req.params.id, req.userId]
+      'SELECT photo_paths FROM inspection_records WHERE id = $1 AND org_id = $2',
+      [req.params.id, req.orgId]
     );
 
     if (fetchResult.rows.length === 0) {
@@ -105,10 +106,10 @@ export const deleteRecord = async (req, res) => {
 
     const photo_paths = fetchResult.rows[0].photo_paths || [];
 
-    await query('DELETE FROM inspection_records WHERE id = $1 AND user_id = $2', [
-      req.params.id,
-      req.userId,
-    ]);
+    await query(
+      'DELETE FROM inspection_records WHERE id = $1 AND org_id = $2',
+      [req.params.id, req.orgId]
+    );
 
     for (const photoPath of photo_paths) {
       try {

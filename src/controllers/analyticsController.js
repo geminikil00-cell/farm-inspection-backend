@@ -10,17 +10,29 @@ const FACILITY_IDS = [
 
 const getAverageScore = (records) => {
   if (!records || records.length === 0) return 0;
-  return Math.round(
-    records.reduce((sum, r) => sum + r.score, 0) / records.length
-  );
+  return Math.round(records.reduce((sum, r) => sum + r.score, 0) / records.length);
 };
+
+function classifyInRow(row) {
+  for (let i = 0; i <= 6; i++) {
+    const val = i === 0 ? row.status : row[`status_${i}`];
+    if (!val) continue;
+    const s = val.trim();
+    if (['ممتاز', 'Excellent', '优'].some((v) => s.includes(v))) return 'Excellent';
+    if (['جيد جداً', 'Very Good', '良'].some((v) => s.includes(v))) return 'VeryGood';
+    if (['جيد', 'Good', '可'].some((v) => s.includes(v))) return 'Good';
+    if (['مقبول', 'Acceptable', '不可'].some((v) => s.includes(v))) return 'Acceptable';
+    if (['سيء', 'Bad', '极'].some((v) => s.includes(v))) return 'Bad';
+  }
+  return null;
+}
 
 export const getSummary = async (req, res) => {
   try {
     const { year, quarter } = req.query;
 
-    let sql = 'SELECT * FROM inspection_records WHERE user_id = $1';
-    const params = [req.userId];
+    let sql = 'SELECT * FROM inspection_records WHERE org_id = $1';
+    const params = [req.orgId];
     let idx = 2;
 
     if (year) {
@@ -147,8 +159,8 @@ export const getComparison = async (req, res) => {
     const { mode, timeA_year, timeA_quarter, timeB_year, timeB_quarter, locA, locB, loc_year, loc_quarter } = req.query;
 
     if (mode === 'time') {
-      const recordsA = await fetchRecords(req.userId, timeA_year, timeA_quarter);
-      const recordsB = await fetchRecords(req.userId, timeB_year, timeB_quarter);
+      const recordsA = await fetchRecords(req.orgId, timeA_year, timeA_quarter);
+      const recordsB = await fetchRecords(req.orgId, timeB_year, timeB_quarter);
 
       const avgA = getAverageScore(recordsA);
       const avgB = getAverageScore(recordsB);
@@ -179,24 +191,24 @@ export const getComparison = async (req, res) => {
         radarData, barData,
       });
     } else if (mode === 'location') {
-      const recordsA = await fetchRecordsForFacility(req.userId, locA, loc_year, loc_quarter);
-      const recordsB = await fetchRecordsForFacility(req.userId, locB, loc_year, loc_quarter);
+      const recordsA = await fetchRecordsForFacility(req.orgId, locA, loc_year, loc_quarter);
+      const recordsB = await fetchRecordsForFacility(req.orgId, locB, loc_year, loc_quarter);
 
       const avgA = getAverageScore(recordsA);
       const avgB = getAverageScore(recordsB);
 
       const allRecords = await query(
-        'SELECT * FROM inspection_records WHERE user_id = $1 ORDER BY date ASC',
-        [req.userId]
+        'SELECT * FROM inspection_records WHERE org_id = $1 ORDER BY date ASC',
+        [req.orgId]
       );
       const all = allRecords.rows.filter(
         (r) => r.facility_id === locA || r.facility_id === locB
       );
 
-      const timeTrendMap = {};
       const titleA = FACILITY_TRANSLATIONS.ar?.[locA]?.title || locA;
       const titleB = FACILITY_TRANSLATIONS.ar?.[locB]?.title || locB;
 
+      const timeTrendMap = {};
       all.forEach((r) => {
         const key = `${r.inspection_year}-${r.inspection_quarter}`;
         if (!timeTrendMap[key]) {
@@ -208,7 +220,7 @@ export const getComparison = async (req, res) => {
         if (r.facility_id === locA) {
           timeTrendMap[key].totalA += r.score;
           timeTrendMap[key].countA++;
-        } else {
+        } else if (r.facility_id === locB) {
           timeTrendMap[key].totalB += r.score;
           timeTrendMap[key].countB++;
         }
@@ -237,8 +249,7 @@ export const getComparison = async (req, res) => {
       res.json({
         avgA, avgB, delta: avgB - avgA,
         countA: recordsA.length, countB: recordsB.length,
-        trendData, barData,
-        titleA, titleB,
+        trendData, barData, titleA, titleB,
       });
     } else {
       res.status(400).json({ error: 'Invalid mode. Use "time" or "location".' });
@@ -249,9 +260,9 @@ export const getComparison = async (req, res) => {
   }
 };
 
-async function fetchRecords(userId, year, quarter) {
-  let sql = 'SELECT * FROM inspection_records WHERE user_id = $1';
-  const params = [userId];
+async function fetchRecords(orgId, year, quarter) {
+  let sql = 'SELECT * FROM inspection_records WHERE org_id = $1';
+  const params = [orgId];
   let idx = 2;
 
   if (year) {
@@ -267,9 +278,9 @@ async function fetchRecords(userId, year, quarter) {
   return result.rows;
 }
 
-async function fetchRecordsForFacility(userId, fid, year, quarter) {
-  let sql = 'SELECT * FROM inspection_records WHERE user_id = $1 AND facility_id = $2';
-  const params = [userId, fid];
+async function fetchRecordsForFacility(orgId, fid, year, quarter) {
+  let sql = 'SELECT * FROM inspection_records WHERE org_id = $1 AND facility_id = $2';
+  const params = [orgId, fid];
   let idx = 3;
 
   if (year) {
@@ -283,18 +294,4 @@ async function fetchRecordsForFacility(userId, fid, year, quarter) {
 
   const result = await query(sql, params);
   return result.rows;
-}
-
-function classifyInRow(row) {
-  for (let i = 0; i <= 6; i++) {
-    const val = i === 0 ? row.status : row[`status_${i}`];
-    if (!val) continue;
-    const s = val.trim();
-    if (['ممتاز', 'Excellent', '优'].some((v) => s.includes(v))) return 'Excellent';
-    if (['جيد جداً', 'Very Good', '良'].some((v) => s.includes(v))) return 'VeryGood';
-    if (['جيد', 'Good', '可'].some((v) => s.includes(v))) return 'Good';
-    if (['مقبول', 'Acceptable', '不可'].some((v) => s.includes(v))) return 'Acceptable';
-    if (['سيء', 'Bad', '极'].some((v) => s.includes(v))) return 'Bad';
-  }
-  return null;
 }
