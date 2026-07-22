@@ -1,5 +1,6 @@
 import { query, getClient } from '../config/db.js';
 import { autoCreateNCsFromAudit } from './ncController.js';
+import { notifyAdmins } from './notificationController.js';
 
 const STATUS_SCORE_MAP = { 'ممتاز': 100, 'جيد جداً': 80, 'جيد': 60, 'مقبول': 40, 'سيء': 0 };
 
@@ -241,6 +242,15 @@ export const submitAudit = async (req, res) => {
     );
 
     await client.query('COMMIT');
+
+    await notifyAdmins(null, {
+      title: `Audit submitted: ${audit.template_name}`,
+      details: `Score: ${overallScore}% · ${ncFlags} NC flagged · ${audit.site_name || ''}`,
+      type: 'audit_submitted',
+      unitId: req.orgId,
+      relatedId: req.params.id,
+    });
+
     res.json({ audit: result.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');

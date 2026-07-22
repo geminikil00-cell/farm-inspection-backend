@@ -1,4 +1,5 @@
 import { query, getClient } from '../config/db.js';
+import { notifyAdmins } from './notificationController.js';
 
 export const getTemplates = async (req, res) => {
   try {
@@ -168,6 +169,14 @@ export const publishTemplate = async (req, res) => {
     );
 
     await client.query('COMMIT');
+
+    await notifyAdmins(null, {
+      title: `Template published: ${current.name}`,
+      details: `Version ${current.version} · ${current.category} · ${(current.sections || []).length} sections`,
+      type: 'template_published',
+      unitId: req.orgId,
+      relatedId: current.id,
+    });
 
     res.json({
       template: current,

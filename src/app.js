@@ -11,6 +11,10 @@ import templateRoutes from './routes/templates.js';
 import auditRoutes from './routes/audits.js';
 import ncRoutes from './routes/ncs.js';
 import dashboardRoutes from './routes/dashboard.js';
+import systemRoutes from './routes/system.js';
+import messageRoutes from './routes/messages.js';
+import notificationRoutes from './routes/notifications.js';
+import settingsRoutes from './routes/settings.js';
 
 const app = express();
 
@@ -41,6 +45,10 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/audits', auditRoutes);
 app.use('/api/ncs', ncRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/system', systemRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
