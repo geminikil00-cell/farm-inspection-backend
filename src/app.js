@@ -15,6 +15,7 @@ import systemRoutes from './routes/system.js';
 import messageRoutes from './routes/messages.js';
 import notificationRoutes from './routes/notifications.js';
 import settingsRoutes from './routes/settings.js';
+import departmentRoutes from './routes/departments.js';
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/system', systemRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/departments', departmentRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
