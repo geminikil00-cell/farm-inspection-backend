@@ -9,6 +9,7 @@ import photoRoutes from './routes/photos.js';
 import adminRoutes from './routes/admin.js';
 import templateRoutes from './routes/templates.js';
 import auditRoutes from './routes/audits.js';
+import ncRoutes from './routes/ncs.js';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/photos', photoRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/audits', auditRoutes);
+app.use('/api/ncs', ncRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });

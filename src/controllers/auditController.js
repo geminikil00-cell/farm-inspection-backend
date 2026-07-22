@@ -1,4 +1,5 @@
 import { query, getClient } from '../config/db.js';
+import { autoCreateNCsFromAudit } from './ncController.js';
 
 const STATUS_SCORE_MAP = { 'ممتاز': 100, 'جيد جداً': 80, 'جيد': 60, 'مقبول': 40, 'سيء': 0 };
 
@@ -195,10 +196,13 @@ export const updateAuditResponses = async (req, res) => {
 };
 
 export const submitAudit = async (req, res) => {
+  const client = await getClient();
   try {
+    await client.query('BEGIN');
+
     const { responses } = req.body;
 
-    const auditRes = await query(
+    const auditRes = await client.query(
       'SELECT * FROM audit_records WHERE id = $1 AND org_id = $2 AND status = $3',
       [req.params.id, req.orgId, 'in_progress']
     );
@@ -224,7 +228,9 @@ export const submitAudit = async (req, res) => {
       }
     }
 
-    const result = await query(
+    await autoCreateNCsFromAudit(client, { ...audit, responses: sections }, req.userId, req.username);
+
+    const result = await client.query(
       `UPDATE audit_records SET
          status = 'submitted', responses = $3::jsonb,
          overall_score = $4, passed = $5, nc_flags = $6,
@@ -234,10 +240,14 @@ export const submitAudit = async (req, res) => {
       [req.params.id, req.orgId, JSON.stringify(sections), overallScore, passed, ncFlags]
     );
 
+    await client.query('COMMIT');
     res.json({ audit: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('submitAudit error:', err.message);
     res.status(500).json({ error: 'Failed to submit audit' });
+  } finally {
+    client.release();
   }
 };
 
