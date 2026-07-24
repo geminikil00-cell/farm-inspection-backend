@@ -120,19 +120,25 @@ export const createAudit = async (req, res) => {
     const template = templateRes.rows[0];
     const sections = template.sections || [];
     const scoringConfig = template.scoring_config || {};
+    const isTable = template.template_type === 'table';
 
-    const responses = sections.map((section) => ({
-      section_id: section.id,
-      section_title: section.title,
-      questions: (section.questions || []).map((q) => ({
-        question_id: q.id,
-        type: q.type,
-        label: q.label,
-        required: q.required,
-        options: q.options,
-      })),
-      responses: {},
-    }));
+    let responses;
+    if (isTable) {
+      responses = {};
+    } else {
+      responses = sections.map((section) => ({
+        section_id: section.id,
+        section_title: section.title,
+        questions: (section.questions || []).map((q) => ({
+          question_id: q.id,
+          type: q.type,
+          label: q.label,
+          required: q.required,
+          options: q.options,
+        })),
+        responses: {},
+      }));
+    }
 
     const result = await query(
       `INSERT INTO audit_records

@@ -102,18 +102,25 @@ export const startAssignment = async (req, res) => {
 
     const template = tpl.rows[0];
     const sections = template.sections || [];
-    const responses = sections.map((section) => ({
-      section_id: section.id,
-      section_title: section.title,
-      questions: (section.questions || []).map((q) => ({
-        question_id: q.id,
-        type: q.type,
-        label: q.label,
-        required: q.required,
-        options: q.options,
-      })),
-      responses: {},
-    }));
+    const isTable = template.template_type === 'table';
+
+    let responses;
+    if (isTable) {
+      responses = {};
+    } else {
+      responses = sections.map((section) => ({
+        section_id: section.id,
+        section_title: section.title,
+        questions: (section.questions || []).map((q) => ({
+          question_id: q.id,
+          type: q.type,
+          label: q.label,
+          required: q.required,
+          options: q.options,
+        })),
+        responses: {},
+      }));
+    }
 
     const audit = await client.query(
       `INSERT INTO audit_records
